@@ -238,6 +238,12 @@ namespace LuauCompat {
                     case LOP_JUMPXEQKB:
                     case LOP_JUMPXEQKN:
                     case LOP_JUMPXEQKS:
+                    case LOP_GETUDATAKS:
+                    case LOP_SETUDATAKS:
+                    case LOP_NAMECALLUDATA:
+                    case LOP_NEWCLASSMEMBER:
+                    case LOP_CALLFB:
+                    case LOP_CMPPROTO:
                         return 2;
                     default:
                         return 1;
@@ -251,6 +257,7 @@ namespace LuauCompat {
                     case LUA_TNIL: return LBC_CONSTANT_NIL;
                     case LUA_TBOOLEAN: return LBC_CONSTANT_BOOLEAN;
                     case LUA_TNUMBER: return LBC_CONSTANT_NUMBER;
+                    case LUA_TINTEGER: return LBC_CONSTANT_INTEGER;
                     case LUA_TVECTOR: return LBC_CONSTANT_VECTOR;
                     case LUA_TSTRING: return LBC_CONSTANT_STRING;
                     case LUA_TTABLE: return LBC_CONSTANT_TABLE;
@@ -401,6 +408,18 @@ namespace LuauCompat {
                         state.write<double>(nvalue(value));
                         break;
 
+                    case LBC_CONSTANT_INTEGER: {
+                        int64_t iv = lvalue(value);
+                        if (iv < 0) {
+                            state.write<uint8_t>(1);
+                            state.writeVarInt(static_cast<uint32_t>(~(uint64_t)iv + 1));
+                        } else {
+                            state.write<uint8_t>(0);
+                            state.writeVarInt(static_cast<uint32_t>((uint64_t)iv));
+                        }
+                        break;
+                    }
+
                     case LBC_CONSTANT_VECTOR: {
                         const float* v = vvalue(value);
                         state.write(v[0]);
@@ -429,6 +448,22 @@ namespace LuauCompat {
                         break;
                     }
 
+                    case LBC_CONSTANT_TABLE_WITH_CONSTANTS: {
+                        const luaTable* table = hvalue(value);
+                        int nodeCount = sizenode(table);
+                        state.writeVarInt(nodeCount);
+
+                        for (int i = 0; i < nodeCount; ++i) {
+                            const LuaNode& node = table->node[i];
+                            if (node.key.tt != LUA_TNIL) {
+                                uint32_t keyIdx = getConstantKeyIndex(proto, &node.key, table);
+                                state.writeVarInt(keyIdx);
+                                state.write<uint32_t>(static_cast<uint32_t>(i));
+                            }
+                        }
+                        break;
+                    }
+
                     case LBC_CONSTANT_CLOSURE: {
                         const Closure* closure = clvalue(value);
                         state.writeVarInt(closure->l.p->bytecodeid);
@@ -437,6 +472,11 @@ namespace LuauCompat {
 
                     case LBC_CONSTANT_IMPORT:
                         state.write(resolveImport(state, importCount++, proto));
+                        break;
+
+                    case LBC_CONSTANT_CLASS_SHAPE:
+                        // CLASS_SHAPE is experimental and not representable from a live TValue;
+                        // emit a nil placeholder to avoid corrupting the bytecode stream.
                         break;
                     }
                 }
@@ -720,7 +760,7 @@ namespace LuauCompat {
 
         // Note: Apologies for using the raw LuaC API here.
         // Accessing L during GC traversal is inherently unsafe, but in this case, it's the most stable option.
-        // This function is called during internal GC traversal — see luaU_freeudata for context.
+        // This function is called during internal GC traversal Â— see luaU_freeudata for context.
         // P.S. Until Luau provides a safer alternative, we'll stick with this approach.
         static void dtor(lua_State* L, void* userdataPointer) {
             if (L->userdata == LUAU_STATE_IS_CLOSING) {
@@ -739,7 +779,7 @@ namespace LuauCompat {
 #pragma pop_macro("checkliveness")
     };
 
-	static std::string compile(const std::string& source, int optimizationLevel = 1, int debugLevel = 1) {
+	static std::string compile(const std::string& source, int optimizationLevel = 2, int debugLevel = 0) {
 		lua_CompileOptions opts = {};
 		opts.optimizationLevel = optimizationLevel;
 		opts.debugLevel = debugLevel;
