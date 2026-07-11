@@ -151,6 +151,11 @@ namespace LuauCompat {
                     int getStatus() const { return mStatus; }
                     int getStrip() const { return mStrip; }
 
+                    // Returns the next import constant's index within this dump, then advances the counter.
+                    // Scoped to this StateBase instance (i.e. to a single dump() call) so that dumping
+                    // multiple functions in the same process doesn't accumulate a stale offset.
+                    size_t nextImportIndex() { return mImportCount++; }
+
                     // Mutators
                     void setVersion(uint8_t version) { mVersion = version; }
                     void setTypesVersion(uint8_t version) { mTypesVersion = version; }
@@ -165,6 +170,7 @@ namespace LuauCompat {
                 private:
                     uint8_t mVersion = LBC_VERSION_TARGET;
                     uint8_t mTypesVersion = 0;
+                    size_t mImportCount = 0;
 
                     struct StringTable {
                         std::unordered_map<const TString*, uint32_t> ids;
@@ -394,8 +400,6 @@ namespace LuauCompat {
                     uint8_t constType = convertConstantType(value);
                     state.write<uint8_t>(constType);
 
-                    static size_t importCount = 0;
-
                     switch (constType) {
                     case LBC_CONSTANT_NIL:
                         break;
@@ -424,8 +428,12 @@ namespace LuauCompat {
                         const float* v = vvalue(value);
                         state.write(v[0]);
                         state.write(v[1]);
+                        // v[2] (z) always aliases TValue::extra[0] by design (see lobject.h / setvvalue),
+                        // and is valid to read regardless of LUA_VECTOR_SIZE.
                         state.write(v[2]);
-                        float w = (sizeof(value->extra) == 2) ? v[3] : 0.0f;
+                        // v[3] (w) only exists when built with LUA_VECTOR_SIZE == 4 (extra has a 2nd
+                        // element then); reading it otherwise would read past TValue::extra.
+                        float w = (LUA_VECTOR_SIZE == 4) ? v[3] : 0.0f;
                         state.write(w);
                         break;
                     }
@@ -471,7 +479,7 @@ namespace LuauCompat {
                     }
 
                     case LBC_CONSTANT_IMPORT:
-                        state.write(resolveImport(state, importCount++, proto));
+                        state.write(resolveImport(state, state.nextImportIndex(), proto));
                         break;
 
                     case LBC_CONSTANT_CLASS_SHAPE:
@@ -890,4 +898,4 @@ static void luaL_unref_compat(lua_State* L, int t, int ref) {
 #define luaL_ref luaL_ref_compat
 #define luaL_unref luaL_unref_compat
 #endif
-#endif KEPLER_PROJECT_COMPATLUAU_H_
+#endif // KEPLER_PROJECT_COMPATLUAU_H_
