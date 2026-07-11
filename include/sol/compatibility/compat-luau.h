@@ -787,11 +787,11 @@ namespace LuauCompat {
 #pragma pop_macro("checkliveness")
     };
 
-	static std::string compile(const std::string& source, int optimizationLevel = 2, int debugLevel = 0) {
+	static std::string compile(const std::string& source, int optimizationLevel = 2, int debugLevel = 1) {
 		lua_CompileOptions opts = {};
 		opts.optimizationLevel = optimizationLevel;
 		opts.debugLevel = debugLevel;
-		opts.typeInfoLevel = 0;
+		opts.typeInfoLevel = 2;
 		opts.coverageLevel = 0;
 
 		size_t outSize = 0;
