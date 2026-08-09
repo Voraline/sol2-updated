@@ -49,11 +49,14 @@ namespace sol { namespace detail { namespace debug {
 	}
 
 	inline void print_lua_information(lua_State* L) {
-		std::cout << "Lua Version: " << SOL_USE(SOL_LUA_VERSION) << std::endl;
-		std::cout << "Lua (C++): " << SOL_IS_ON(SOL_USING_CXX_LUA) << std::endl;
+		(void)L; // kept for API compatibility; unused now that version info is not printed
+		// This project targets Luau exclusively. SOL_LUA_VERSION has no
+		// meaningful value here (it's a PUC-Lua compatibility-layer
+		// artifact), so it's omitted rather than printing a fabricated
+		// version number. SOL_USE_LUAU is always on and not informative
+		// to print either.
 		std::cout << "Trampoline Propagate Exceptions?: " << SOL_IS_ON(SOL_PROPAGATE_EXCEPTIONS) << std::endl;
 		std::cout << "Catch-all Exceptions?: " << SOL_IS_ON(SOL_EXCEPTIONS_CATCH_ALL) << std::endl;
-		std::cout << "Luau: " << SOL_IS_ON(SOL_USE_LUAU) << std::endl;
 	}
 }}} // namespace sol::detail::debug
 

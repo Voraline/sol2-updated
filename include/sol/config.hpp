@@ -51,10 +51,6 @@ the build system, or the command line options of your compiler.
 #define SOL_USE_LUAU 1
 #endif
 
-#ifndef LUA_VERSION_NUM
-#define LUA_VERSION_NUM 501
-#endif
-
 #ifndef SOL_LUA_BIT32_LIB
 #define SOL_LUA_BIT32_LIB 0
 #endif

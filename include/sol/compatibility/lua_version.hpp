@@ -35,19 +35,6 @@
 #define return_luaL_error(L, fmt, ...) luaL_errorL(L, fmt, ##__VA_ARGS__);
 #define return_lua_error(L) lua_error(L);
 
-// This project targets Luau only; LuaJIT is never used.
-#define SOL_USE_LUAJIT_I_ SOL_OFF
-
-#if !defined(SOL_LUA_VERSION)
-	#define SOL_LUA_VERSION 501
-#endif // SOL_LUA_VERSION
-
-#if defined(SOL_LUA_VERSION)
-	#define SOL_LUA_VERSION_I_ SOL_LUA_VERSION
-#else
-	#define SOL_LUA_VERSION_I_ 504
-#endif
-
 // Exception safety / propagation, according to Lua information
 // and user defines. Note this can sometimes change based on version information...
 #if defined(SOL_EXCEPTIONS_ALWAYS_UNSAFE)
@@ -81,10 +68,9 @@
 	#define SOL_EXCEPTIONS_CATCH_ALL_I_ SOL_DEFAULT_ON
 #endif
 
-// This project targets Luau only; the LuaJIT exception trampoline
-// (luaJIT_setmode wrapping) is never applicable.
-#define SOL_USE_LUAJIT_EXCEPTION_TRAMPOLINE_I_ SOL_OFF
-
+// Luau's compat-luau.h luaL_Stream shim has no `closef` member (Luau
+// has no io library, so it's never actually instantiated at runtime);
+// referencing ->closef would fail to compile.
 #if defined(SOL_LUAL_STREAM_HAS_CLOSE_FUNCTION)
 	#if (SOL_LUAL_STREAM_HAS_CLOSE_FUNCTION != 0)
 		#define SOL_LUAL_STREAM_USE_CLOSE_FUNCTION_I_ SOL_ON
@@ -92,45 +78,20 @@
 		#define SOL_LUAL_STREAM_USE_CLOSE_FUNCTION_I_ SOL_OFF
 	#endif
 #else
-	#if (SOL_LUA_VERSION > 501)
-		#define SOL_LUAL_STREAM_USE_CLOSE_FUNCTION_I_ SOL_ON
-	#else
-		#define SOL_LUAL_STREAM_USE_CLOSE_FUNCTION_I_ SOL_DEFAULT_OFF
-	#endif
+	#define SOL_LUAL_STREAM_USE_CLOSE_FUNCTION_I_ SOL_DEFAULT_OFF
 #endif
 
-#if defined (SOL_LUA_BIT32_LIB)
-	#if SOL_LUA_BIT32_LIB != 0
+// Luau has no bit32 library (version.hpp forces SOL_LUA_BIT32_LIB to 0
+// when SOL_USE_LUAU is on); the PUC-Lua 5.2-vs-5.3-vs-5.4 branching
+// that stock sol2 uses here does not apply.
+#if defined(SOL_LUA_BIT32_LIB)
+	#if (SOL_LUA_BIT32_LIB != 0)
 		#define SOL_LUA_BIT32_LIB_I_ SOL_ON
 	#else
 		#define SOL_LUA_BIT32_LIB_I_ SOL_OFF
 	#endif
 #else
-	// Lua 5.2 only (deprecated in 5.3 (503)) (Can be turned on with Compat flags)
-	// Lua 5.2, or other versions of Lua with the compat flag, or Lua that is not 5.2 with the specific define (5.4.1 either removed it entirely or broke it)
-	#if (SOL_LUA_VERSION_I_ == 502)
-		#define SOL_LUA_BIT32_LIB_I_ SOL_ON
-	#elif defined(LUA_COMPAT_BITLIB)
-		#define SOL_LUA_BIT32_LIB_I_ SOL_ON
-	#elif (SOL_LUA_VERSION_I_ < 504 && defined(LUA_COMPAT_5_2))
-		#define SOL_LUA_BIT32_LIB_I_ SOL_ON
-	#else
-		#define SOL_LUA_BIT32_LIB_I_ SOL_DEFAULT_OFF
-	#endif
-#endif
-
-#if defined (SOL_LUA_NIL_IN_TABLES)
-	#if SOL_LUA_NIL_IN_TABLES != 0
-		#define SOL_LUA_NIL_IN_TABLES_I_ SOL_ON
-	#else
-		#define SOL_LUA_NIL_IN_TABLES_I_ SOL_OFF
-	#endif
-#else
-	#if defined(LUA_NILINTABLE) && (LUA_NILINTABLE != 0)
-		#define SOL_LUA_NIL_IN_TABLES_I_ SOL_DEFAULT_ON
-	#else
-		#define SOL_LUA_NIL_IN_TABLES_I_ SOL_DEFAULT_OFF
-	#endif
+	#define SOL_LUA_BIT32_LIB_I_ SOL_DEFAULT_OFF
 #endif
 
 // clang-format on

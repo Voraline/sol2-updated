@@ -663,26 +663,10 @@
 	#define SOL_USING_CXX_LUA_I_ SOL_DEFAULT_OFF
 #endif
 
-// This project targets Luau only; LuaJIT is never used.
-#define SOL_USING_CXX_LUAJIT_I_ SOL_OFF
-
-#if defined(SOL_NO_LUA_HPP)
-	#if (SOL_NO_LUA_HPP != 0)
-		#define SOL_USE_LUA_HPP_I_ SOL_OFF
-	#else
-		#define SOL_USE_LUA_HPP_I_ SOL_ON
-	#endif
-#elif SOL_IS_ON(SOL_USING_CXX_LUA)
-	#define SOL_USE_LUA_HPP_I_ SOL_OFF
-#elif defined(__has_include)
-	#if __has_include(<lua.hpp>)
-		#define SOL_USE_LUA_HPP_I_ SOL_ON
-	#else
-		#define SOL_USE_LUA_HPP_I_ SOL_OFF
-	#endif
-#else
-	#define SOL_USE_LUA_HPP_I_ SOL_DEFAULT_ON
-#endif
+// The LuaJIT lua.hpp combined-header auto-detection that stock sol2
+// carries here has been removed: this project targets Luau exclusively,
+// SOL_USING_CXX_LUAJIT_I_/SOL_USE_LUA_HPP_I_ had no consumer left in
+// the codebase, and Luau has no combined "lua.hpp" header to detect.
 
 #if defined(SOL_CONTAINERS_START)
 	#define SOL_CONTAINER_START_INDEX_I_ SOL_CONTAINERS_START
