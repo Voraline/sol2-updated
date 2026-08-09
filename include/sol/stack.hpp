@@ -344,32 +344,16 @@ namespace sol {
 			}
 		}
 
+		// LuaJIT's exception trampoline (luaJIT_setmode wrapping) does not apply
+		// to this project, which targets Luau only; kept as no-ops so callers
+		// (e.g. state construction) do not need backend-specific branches.
 		inline void luajit_exception_handler(lua_State* L, int (*handler)(lua_State*, lua_CFunction) = detail::c_trampoline) {
-#if SOL_IS_ON(SOL_USE_LUAJIT_EXCEPTION_TRAMPOLINE)
-			if (L == nullptr) {
-				return;
-			}
-#if SOL_IS_ON(SOL_SAFE_STACK_CHECK)
-			luaL_checkstack(L, 1, detail::not_enough_stack_space_generic);
-#endif // make sure stack doesn't overflow
-			lua_pushlightuserdata(L, (void*)handler);
-			auto pn = pop_n(L, 1);
-			luaJIT_setmode(L, -1, LUAJIT_MODE_WRAPCFUNC | LUAJIT_MODE_ON);
-#else
 			(void)L;
 			(void)handler;
-#endif
 		}
 
 		inline void luajit_exception_off(lua_State* L) {
-#if SOL_IS_ON(SOL_USE_LUAJIT_EXCEPTION_TRAMPOLINE)
-			if (L == nullptr) {
-				return;
-			}
-			luaJIT_setmode(L, -1, LUAJIT_MODE_WRAPCFUNC | LUAJIT_MODE_OFF);
-#else
 			(void)L;
-#endif
 		}
 
 		namespace stack_detail {

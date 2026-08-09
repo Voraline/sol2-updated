@@ -129,9 +129,6 @@ namespace sol {
 
 				for (auto&& library : libraries) {
 					switch (library) {
-#if SOL_LUA_VERSION_I_ <= 501 && SOL_IS_ON(SOL_USE_LUAJIT)
-					case lib::coroutine:
-#endif // luajit opens coroutine base stuff
 					case lib::base:
 						luaL_requiref(L, "base", luaopen_base, 1);
 						lua_pop(L, 1);
@@ -142,14 +139,12 @@ namespace sol {
 						lua_pop(L, 1);
 						break;
 #endif
-#if SOL_IS_OFF(SOL_USE_LUAJIT)
 					case lib::coroutine:
 #if SOL_LUA_VERSION_I_ > 501 || SOL_IS_ON(SOL_USE_LUAU)
 						luaL_requiref(L, "coroutine", luaopen_coroutine, 1);
 						lua_pop(L, 1);
 #endif // Lua 5.2+ and Luau only
 						break;
-#endif // Not LuaJIT - comes builtin
 					case lib::string:
 						luaL_requiref(L, "string", luaopen_string, 1);
 						lua_pop(L, 1);
@@ -163,13 +158,9 @@ namespace sol {
 						lua_pop(L, 1);
 						break;
 					case lib::bit32:
-#if SOL_IS_ON(SOL_USE_LUAJIT)
-						luaL_requiref(L, "bit32", luaopen_bit, 1);
-						lua_pop(L, 1);
-#elif SOL_IS_ON(SOL_LUA_BIT32_LIB)
+#if SOL_IS_ON(SOL_LUA_BIT32_LIB)
 						luaL_requiref(L, "bit32", luaopen_bit32, 1);
 						lua_pop(L, 1);
-#else
 #endif
 						break;
 					case lib::io:
@@ -187,22 +178,16 @@ namespace sol {
 						lua_pop(L, 1);
 						break;
 					case lib::utf8:
-#if SOL_LUA_VERSION_I_ > 502 && SOL_IS_OFF(SOL_USE_LUAJIT) || SOL_IS_ON(SOL_USE_LUAU)
+#if SOL_LUA_VERSION_I_ > 502 || SOL_IS_ON(SOL_USE_LUAU)
 						luaL_requiref(L, "utf8", luaopen_utf8, 1);
 						lua_pop(L, 1);
 #endif // Lua 5.3+ and Luau only
 						break;
 					case lib::ffi:
-#if SOL_IS_ON(SOL_USE_LUAJIT) && SOL_IS_OFF(SOL_LUAJIT_FFI_DISABLED)
-						luaL_requiref(L, "ffi", luaopen_ffi, 1);
-						lua_pop(L, 1);
-#endif // LuaJIT only
+						// LuaJIT-only; this project targets Luau, which has no ffi library.
 						break;
 					case lib::jit:
-#if SOL_IS_ON(SOL_USE_LUAJIT)
-						luaL_requiref(L, "jit", luaopen_jit, 0);
-						lua_pop(L, 1);
-#endif // LuaJIT Only
+						// LuaJIT-only; this project targets Luau, which has no jit library.
 						break;
 					case lib::buffer:
 #if SOL_IS_ON(SOL_USE_LUAU)

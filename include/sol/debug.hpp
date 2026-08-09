@@ -53,10 +53,7 @@ namespace sol { namespace detail { namespace debug {
 		std::cout << "Lua (C++): " << SOL_IS_ON(SOL_USING_CXX_LUA) << std::endl;
 		std::cout << "Trampoline Propagate Exceptions?: " << SOL_IS_ON(SOL_PROPAGATE_EXCEPTIONS) << std::endl;
 		std::cout << "Catch-all Exceptions?: " << SOL_IS_ON(SOL_EXCEPTIONS_CATCH_ALL) << std::endl;
-		std::cout << "LuaJIT: " << SOL_IS_ON(SOL_USE_LUAJIT) << std::endl;
-		std::cout << "LuaJIT Version: " << SOL_USE(SOL_LUAJIT_VERSION) << std::endl;
-		std::cout << "LuaJIT (C++): " << SOL_IS_ON(SOL_USING_CXX_LUAJIT) << std::endl;
-		std::cout << "LuaJIT Exception Trampoline: " << SOL_IS_ON(SOL_USE_LUAJIT_EXCEPTION_TRAMPOLINE) << std::endl;
+		std::cout << "Luau: " << SOL_IS_ON(SOL_USE_LUAU) << std::endl;
 	}
 }}} // namespace sol::detail::debug
 

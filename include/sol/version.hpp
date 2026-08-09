@@ -663,21 +663,8 @@
 	#define SOL_USING_CXX_LUA_I_ SOL_DEFAULT_OFF
 #endif
 
-#if defined(SOL_USING_CXX_LUAJIT)
-	#if (SOL_USING_CXX_LUAJIT != 0)
-		#define SOL_USING_CXX_LUAJIT_I_ SOL_ON
-	#else
-		#define SOL_USING_CXX_LUAJIT_I_ SOL_OFF
-	#endif
-#elif defined(SOL_USE_CXX_LUAJIT)
-	#if (SOL_USE_CXX_LUAJIT != 0)
-		#define SOL_USING_CXX_LUAJIT_I_ SOL_ON
-	#else
-		#define SOL_USING_CXX_LUAJIT_I_ SOL_OFF
-	#endif
-#else
-	#define SOL_USING_CXX_LUAJIT_I_ SOL_DEFAULT_OFF
-#endif
+// This project targets Luau only; LuaJIT is never used.
+#define SOL_USING_CXX_LUAJIT_I_ SOL_OFF
 
 #if defined(SOL_NO_LUA_HPP)
 	#if (SOL_NO_LUA_HPP != 0)

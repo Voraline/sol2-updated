@@ -70,49 +70,8 @@
 	#define return_lua_error(L) return lua_error(L)
 #endif
 
-#if defined(SOL_LUAJIT)
-	#if (SOL_LUAJIT != 0)
-		#define SOL_USE_LUAJIT_I_ SOL_ON
-	#else
-		#define SOL_USE_LUAJIT_I_ SOL_OFF
-	#endif
-#elif defined(LUAJIT_VERSION)
-	#define SOL_USE_LUAJIT_I_ SOL_ON
-#elif SOL_IS_ON(SOL_USING_CXX_LUAJIT)
-	#define SOL_USE_LUAJIT_I_ SOL_ON
-#else
-	#define SOL_USE_LUAJIT_I_ SOL_DEFAULT_OFF
-#endif // luajit
-
-#if SOL_IS_ON(SOL_USING_CXX_LUAJIT)
-	#include <luajit.h>
-#elif SOL_IS_ON(SOL_USE_LUAJIT)
-	extern "C" {
-		#include <luajit.h>
-	}
-#endif // C++ LuaJIT ... whatever that means
-
-#if defined(SOL_LUAJIT_VERSION)
-	#define SOL_LUAJIT_VERSION_I_ SOL_LUAJIT_VERSION
-#elif SOL_IS_ON(SOL_USE_LUAJIT)
-	#define SOL_LUAJIT_VERSION_I_ LUAJIT_VERSION_NUM
-#else
-	#define SOL_LUAJIT_VERSION_I_ 0
-#endif
-
-#if defined(SOL_LUAJIT_FFI_DISABLED)
-	#define SOL_LUAJIT_FFI_DISABLED_I_ SOL_ON
-#elif defined(LUAJIT_DISABLE_FFI)
-	#define SOL_LUAJIT_FFI_DISABLED_I_ SOL_ON
-#else
-	#define SOL_LUAJIT_FFI_DISABLED_I_ SOL_DEFAULT_OFF
-#endif
-
-#if defined(MOONJIT_VERSION)
-	#define SOL_USE_MOONJIT_I_ SOL_ON
-#else
-	#define SOL_USE_MOONJIT_I_ SOL_OFF
-#endif
+// This project targets Luau only; LuaJIT is never used.
+#define SOL_USE_LUAJIT_I_ SOL_OFF
 
 #if !defined(SOL_LUA_VERSION)
 	#if SOL_IS_ON(SOL_USE_LUAU)
@@ -151,24 +110,9 @@
 		#define SOL_PROPAGATE_EXCEPTIONS_I_ SOL_OFF
 	#endif
 #else
-	#if SOL_IS_ON(SOL_USE_LUAJIT)
-		#if SOL_USE(SOL_LUAJIT_VERSION) >= 20100
-			// LuaJIT 2.1.0-beta3 and better have exception support locked in for all platforms (mostly)
-			#define SOL_PROPAGATE_EXCEPTIONS_I_ SOL_DEFAULT_ON
-		#elif SOL_USE(SOL_LUAJIT_VERSION) >= 20000
-			// LuaJIT 2.0.x have exception support only on x64 builds
-			#if SOL_IS_ON(SOL_PLATFORM_X64)
-				#define SOL_PROPAGATE_EXCEPTIONS_I_ SOL_DEFAULT_ON
-			#else
-				#define SOL_PROPAGATE_EXCEPTIONS_I_ SOL_DEFAULT_OFF
-			#endif
-		#endif
-	#else
-		// otherwise, there is no exception safety for
-		// shoving exceptions through Lua and errors should
-		// always be serialized
-		#define SOL_PROPAGATE_EXCEPTIONS_I_ SOL_DEFAULT_OFF
-	#endif
+	// This project targets Luau only, which has no native exception
+	// support to propagate through; errors are always serialized.
+	#define SOL_PROPAGATE_EXCEPTIONS_I_ SOL_DEFAULT_OFF
 #endif
 
 // Some configurations work with exceptions,
@@ -180,9 +124,7 @@
 		#define SOL_EXCEPTIONS_CATCH_ALL_I_ SOL_OFF
 	#endif
 #else
-	#if SOL_IS_ON(SOL_USE_LUAJIT) || SOL_IS_ON(SOL_USING_CXX_LUAJIT)
-		#define SOL_EXCEPTIONS_CATCH_ALL_I_ SOL_DEFAULT_OFF
-	#elif SOL_IS_ON(SOL_USING_CXX_LUA)
+	#if SOL_IS_ON(SOL_USING_CXX_LUA)
 		// C++ builds of Lua will throw an exception to implement its `yield` behavior;
 		// it is irresponsible to "catch all" on this setting.
 		#define SOL_EXCEPTIONS_CATCH_ALL_I_ SOL_DEFAULT_OFF
@@ -192,19 +134,9 @@
 	#endif
 #endif
 
-#if defined(SOL_LUAJIT_USE_EXCEPTION_TRAMPOLINE)
-	#if (SOL_LUAJIT_USE_EXCEPTION_TRAMPOLINE != 0)
-		#define SOL_USE_LUAJIT_EXCEPTION_TRAMPOLINE_I_ SOL_ON
-	#else
-		#define SOL_USE_LUAJIT_EXCEPTION_TRAMPOLINE_I_ SOL_OFF
-	#endif
-#else
-	#if SOL_IS_OFF(SOL_PROPAGATE_EXCEPTIONS) && SOL_IS_ON(SOL_USE_LUAJIT)
-		#define SOL_USE_LUAJIT_EXCEPTION_TRAMPOLINE_I_ SOL_ON
-	#else
-		#define SOL_USE_LUAJIT_EXCEPTION_TRAMPOLINE_I_ SOL_DEFAULT_OFF
-	#endif
-#endif
+// This project targets Luau only; the LuaJIT exception trampoline
+// (luaJIT_setmode wrapping) is never applicable.
+#define SOL_USE_LUAJIT_EXCEPTION_TRAMPOLINE_I_ SOL_OFF
 
 #if defined(SOL_LUAL_STREAM_HAS_CLOSE_FUNCTION)
 	#if (SOL_LUAL_STREAM_HAS_CLOSE_FUNCTION != 0)
@@ -213,7 +145,7 @@
 		#define SOL_LUAL_STREAM_USE_CLOSE_FUNCTION_I_ SOL_OFF
 	#endif
 #else
-	#if SOL_IS_OFF(SOL_USE_LUAJIT) && (SOL_LUA_VERSION > 501)
+	#if (SOL_LUA_VERSION > 501)
 		#define SOL_LUAL_STREAM_USE_CLOSE_FUNCTION_I_ SOL_ON
 	#else
 		#define SOL_LUAL_STREAM_USE_CLOSE_FUNCTION_I_ SOL_DEFAULT_OFF

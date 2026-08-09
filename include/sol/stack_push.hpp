@@ -345,7 +345,7 @@ namespace sol { namespace stack {
 				stream->f = source->f;
 #if SOL_IS_ON(SOL_LUAL_STREAM_USE_CLOSE_FUNCTION)
 				stream->closef = source->closef;
-#endif // LuaJIT and Lua 5.1 and below do not have
+#endif // Lua 5.1 and below do not have this member
 				return 1;
 			}
 			else if constexpr (std::is_same_v<Tu, luaL_Stream>) {
@@ -354,7 +354,7 @@ namespace sol { namespace stack {
 				stream->f = source.f;
 #if SOL_IS_ON(SOL_LUAL_STREAM_USE_CLOSE_FUNCTION)
 				stream->closef = source.closef;
-#endif // LuaJIT and Lua 5.1 and below do not have
+#endif // Lua 5.1 and below do not have this member
 				return 1;
 			}
 			else if constexpr (std::is_enum_v<Tu>) {

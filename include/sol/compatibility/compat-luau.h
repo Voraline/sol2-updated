@@ -897,5 +897,183 @@ static void luaL_unref_compat(lua_State* L, int t, int ref) {
 
 #define luaL_ref luaL_ref_compat
 #define luaL_unref luaL_unref_compat
+
+// ---------------------------------------------------------------------
+// Additional shims for symbols sol2's core (non-compatibility-layer)
+// files call unconditionally, regardless of backend. These used to be
+// pulled in from the stock-Lua compat-5.3.h/compat-5.4.h shims; they are
+// reimplemented here directly against Luau's native API so this project
+// does not need to carry the stock-Lua compatibility layer at all.
+// ---------------------------------------------------------------------
+
+#ifndef LUA_OPEQ
+#define LUA_OPEQ 0
+#endif
+#ifndef LUA_OPLT
+#define LUA_OPLT 1
+#endif
+#ifndef LUA_OPLE
+#define LUA_OPLE 2
+#endif
+
+#ifndef LUA_ERRGCMM
+// Luau has no __gc-metamethod-specific error code; alias it to a value
+// distinct from the other LUA_ERR* codes so switch/case comparisons
+// elsewhere in sol2 still compile and simply never match in practice.
+#define LUA_ERRGCMM (LUA_ERRERR + 1000)
+#endif
+
+#ifndef LUA_ERRFILE
+// Luau has no file-loading error code of its own (it has no io library);
+// used only by the luaL_loadfilex shim below.
+#define LUA_ERRFILE (LUA_ERRERR + 1001)
+#endif
+
+// Luau has no io library, so luaL_Stream is never actually instantiated
+// at runtime; it only needs to exist so sol2's `if constexpr` branches
+// for io.* userdata types compile.
+struct luaL_Stream {
+	FILE* f;
+};
+
+inline int lua_compare(lua_State* L, int idx1, int idx2, int op) {
+	switch (op) {
+	case LUA_OPEQ:
+		return lua_equal(L, idx1, idx2);
+	case LUA_OPLT:
+		return lua_lessthan(L, idx1, idx2);
+	case LUA_OPLE:
+		// Luau has no native "less-or-equal" primitive: fall back to
+		// !(b < a), which is equivalent for any total order and avoids
+		// calling back into Lua code (unlike the stock-Lua compat shim).
+		return !lua_lessthan(L, idx2, idx1);
+	default:
+		luaL_error(L, "invalid 'op' argument for lua_compare");
+	}
+	return 0;
+}
+
+inline void lua_rotate(lua_State* L, int idx, int n) {
+	idx = lua_absindex(L, idx);
+	int n_elems = lua_gettop(L) - idx + 1;
+	if (n < 0)
+		n += n_elems;
+	if (n > 0 && n < n_elems) {
+		luaL_checkstack(L, 2, "not enough stack slots available");
+		// Reverse [from, to] in place, swapping pairs from the outside in.
+		auto reverse = [L](int from, int to) {
+			for (; from < to; ++from, --to) {
+				lua_pushvalue(L, from);
+				lua_pushvalue(L, to);
+				// stack top is now: ..., value(from), value(to)
+				lua_replace(L, from); // pops value(to), stores it at `from`
+				// stack top is now: ..., value(from)
+				lua_replace(L, to); // pops value(from), stores it at `to`
+			}
+		};
+		int m = n_elems - n;
+		reverse(idx, idx + m - 1);
+		reverse(idx + m, idx + n_elems - 1);
+		reverse(idx, idx + n_elems - 1);
+	}
+}
+
+inline void luaL_setfuncs(lua_State* L, const luaL_Reg* l, int nup) {
+	luaL_checkstack(L, nup + 1, "too many upvalues");
+	for (; l->name != nullptr; l++) {
+		for (int i = 0; i < nup; i++)
+			lua_pushvalue(L, -(nup + 1) + i);
+		lua_pushcclosure(L, l->func, nup);
+		lua_setfield(L, -(nup + 2), l->name);
+	}
+	lua_pop(L, nup);
+}
+
+inline void luaL_requiref(lua_State* L, const char* modname, lua_CFunction openf, int glb) {
+	luaL_checkstack(L, 3, "not enough stack slots available");
+	lua_getfield(L, LUA_REGISTRYINDEX, "_LOADED");
+	if (lua_isnil(L, -1)) {
+		lua_pop(L, 1);
+		lua_newtable(L);
+		lua_pushvalue(L, -1);
+		lua_setfield(L, LUA_REGISTRYINDEX, "_LOADED");
+	}
+	lua_getfield(L, -1, modname);
+	if (lua_isnil(L, -1)) {
+		lua_pop(L, 1);
+		lua_pushcfunction(L, openf);
+		lua_pushstring(L, modname);
+		lua_call(L, 1, 1);
+		lua_pushvalue(L, -1);
+		lua_setfield(L, -3, modname);
+	}
+	if (glb) {
+		lua_pushvalue(L, -1);
+		lua_setglobal(L, modname);
+	}
+	lua_replace(L, -2);
+}
+
+#define lua_pushglobaltable(L) lua_pushvalue((L), LUA_GLOBALSINDEX)
+
+inline void lua_setuservalue(lua_State* L, int idx) {
+	// Luau's closest native equivalent to a userdata "user value" is the
+	// per-userdata environment table set via lua_setfenv.
+	lua_setfenv(L, idx);
+}
+
+inline void lua_len(lua_State* L, int i) {
+	switch (lua_type(L, i)) {
+	case LUA_TSTRING:
+		lua_pushnumber(L, static_cast<lua_Number>(lua_objlen(L, i)));
+		break;
+	case LUA_TTABLE:
+		if (!luaL_callmeta(L, i, "__len"))
+			lua_pushnumber(L, static_cast<lua_Number>(lua_objlen(L, i)));
+		break;
+	case LUA_TUSERDATA:
+		if (luaL_callmeta(L, i, "__len"))
+			break;
+		[[fallthrough]];
+	default:
+		luaL_error(L, "attempt to get length of a %s value", lua_typename(L, lua_type(L, i)));
+	}
+}
+
+inline lua_Integer luaL_len(lua_State* L, int i) {
+	luaL_checkstack(L, 1, "not enough stack slots");
+	lua_len(L, i);
+	int isnum = 0;
+	lua_Integer res = lua_tointegerx(L, -1, &isnum);
+	lua_pop(L, 1);
+	if (!isnum)
+		luaL_error(L, "object length is not an integer");
+	return res;
+}
+
+inline int luaL_loadbufferx(lua_State* L, const char* buff, size_t sz, const char* name, const char*) {
+	size_t bytecode_size = 0;
+	char* bytecode = luau_compile(buff, sz, nullptr, &bytecode_size);
+	int result = luau_load(L, name, bytecode, bytecode_size, 0);
+	free(bytecode);
+	return result;
+}
+
+inline int luaL_loadbuffer(lua_State* L, const char* buff, size_t sz, const char* name) {
+	return luaL_loadbufferx(L, buff, sz, name, nullptr);
+}
+
+inline int luaL_loadfilex(lua_State* L, const char* filename, const char*) {
+	std::ifstream file(filename, std::ios::binary);
+	if (!file) {
+		lua_pushfstring(L, "cannot open %s", filename);
+		return LUA_ERRFILE;
+	}
+	std::string contents((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	std::string chunkname = "@";
+	chunkname += filename;
+	return luaL_loadbufferx(L, contents.data(), contents.size(), chunkname.c_str(), nullptr);
+}
+
 #endif
 #endif // KEPLER_PROJECT_COMPATLUAU_H_

@@ -26,7 +26,7 @@
 
 // The various pieces of the compatibility layer
 // comes from https://github.com/keplerproject/lua-compat-5.3
-// but has been modified in many places for use with sol and luajit,
+// but has been modified in many places for use with sol,
 // though the core abstractions remain the same
 
 #include <sol/version.hpp>
@@ -35,7 +35,7 @@
 #if SOL_IS_ON(SOL_USE_COMPATIBILITY_LAYER)
 
 // clang-format off
-#if SOL_IS_ON(SOL_USING_CXX_LUA) || SOL_IS_ON(SOL_USING_CXX_LUAJIT)
+#if SOL_IS_ON(SOL_USING_CXX_LUA)
 	#ifndef COMPAT53_LUA_CPP
 		#define COMPAT53_LUA_CPP 1
 	#endif // Build Lua Compat layer as C++
@@ -44,8 +44,6 @@
 		#define COMPAT53_INCLUDE_SOURCE 1
 	#endif // Build Compat Layer Inline
 	#include <sol/compatibility/compat-luau.h>
-	#include <sol/compatibility/compat-5.3.h>
-	#include <sol/compatibility/compat-5.4.h>
 #endif
 // clang-format on
 

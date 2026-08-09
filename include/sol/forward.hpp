@@ -30,7 +30,7 @@
 #include <type_traits>
 #include <string_view>
 
-#if SOL_IS_ON(SOL_USING_CXX_LUA) || SOL_IS_ON(SOL_USING_CXX_LUAJIT)
+#if SOL_IS_ON(SOL_USING_CXX_LUA)
 struct lua_State;
 #else
 extern "C" {
