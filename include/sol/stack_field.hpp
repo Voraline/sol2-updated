@@ -39,12 +39,6 @@ namespace sol { namespace stack {
 		inline constexpr bool is_get_direct_v = (is_get_direct_tableless_v<T, global, raw>) // cf-hack
 			|| (!global && !raw && (meta::is_c_str_or_string_v<T> || meta::is_string_of_v<T, char>)) // cf-hack
 			|| (!global && raw && (std::is_integral_v<T> && !std::is_same_v<T, bool>))
-#if SOL_LUA_VERSION_I_ >= 503
-			|| (!global && !raw && (std::is_integral_v<T> && !std::is_same_v<T, bool>))
-#endif // integer keys 5.3 or better
-#if SOL_LUA_VERSION_I_ >= 502
-			|| (!global && raw && std::is_pointer_v<T> && std::is_void_v<std::remove_pointer_t<T>>)
-#endif // void pointer keys 5.2 or better
 			;
 
 		template <typename T, bool global, bool raw>
@@ -54,12 +48,6 @@ namespace sol { namespace stack {
 		inline constexpr bool is_set_direct_v = (is_set_direct_tableless_v<T, global, raw>) // cf-hack
 			|| (!global && !raw && (meta::is_c_str_or_string_v<T> || meta::is_string_of_v<T, char>)) // cf-hack
 			|| (!global && raw && (std::is_integral_v<T> && !std::is_same_v<T, bool>))     // cf-hack
-#if SOL_LUA_VERSION_I_ >= 503
-			|| (!global && !raw && (std::is_integral_v<T> && !std::is_same_v<T, bool>))
-#endif // integer keys 5.3 or better
-#if SOL_LUA_VERSION_I_ >= 502
-			|| (!global && raw && (std::is_pointer_v<T> && std::is_void_v<std::remove_pointer_t<T>>))
-#endif // void pointer keys 5.2 or better
 			;
 	} // namespace stack_detail
 
@@ -77,15 +65,8 @@ namespace sol { namespace stack {
 			}
 			else if constexpr (std::is_same_v<T, env_key_t>) {
 				(void)key;
-#if SOL_LUA_VERSION_I_ < 502
 				// Use lua_setfenv
 				lua_getfenv(L, tableindex);
-#else
-				// Use upvalues as explained in Lua 5.2 and beyond's manual
-				if (lua_getupvalue(L, tableindex, 1) == nullptr) {
-					push(L, lua_nil);
-				}
-#endif
 			}
 			else if constexpr (std::is_same_v<T, metatable_key_t>) {
 				(void)key;
@@ -96,11 +77,6 @@ namespace sol { namespace stack {
 				if constexpr (std::is_integral_v<T> && !std::is_same_v<bool, T>) {
 					lua_rawgeti(L, tableindex, static_cast<lua_Integer>(key));
 				}
-#if SOL_LUA_VERSION_I_ >= 502
-				else if constexpr (std::is_pointer_v<T> && std::is_void_v<std::remove_pointer_t<T>>) {
-					lua_rawgetp(L, tableindex, key);
-				}
-#endif // Lua 5.2.x+
 				else {
 					push(L, std::forward<Key>(key));
 					lua_rawget(L, tableindex);
@@ -120,11 +96,6 @@ namespace sol { namespace stack {
 					const auto& real_key = to_string(key);
 					lua_getfield(L, tableindex, &real_key[0]);
 				}
-#if SOL_LUA_VERSION_I_ >= 503
-				else if constexpr (std::is_integral_v<T> && !std::is_same_v<bool, T>) {
-					lua_geti(L, tableindex, static_cast<lua_Integer>(key));
-				}
-#endif // Lua 5.3.x+
 				else {
 					push(L, std::forward<Key>(key));
 					lua_gettable(L, tableindex);
@@ -199,12 +170,6 @@ namespace sol { namespace stack {
 					push(L, std::forward<Value>(value));
 					lua_rawseti(L, tableindex, static_cast<lua_Integer>(key));
 				}
-#if SOL_LUA_VERSION_I_ >= 502
-				else if constexpr (std::is_pointer_v<T> && std::is_void_v<std::remove_pointer_t<T>>) {
-					push(L, std::forward<Value>(value));
-					lua_rawsetp(L, tableindex, std::forward<Key>(key));
-				}
-#endif // Lua 5.2.x
 				else {
 					push(L, std::forward<Key>(key));
 					push(L, std::forward<Value>(value));
@@ -223,12 +188,6 @@ namespace sol { namespace stack {
 						lua_setfield(L, tableindex, &key[0]);
 					}
 				}
-#if SOL_LUA_VERSION_I_ >= 503
-				else if constexpr (std::is_integral_v<T> && !std::is_same_v<bool, T>) {
-					push(L, std::forward<Value>(value));
-					lua_seti(L, tableindex, static_cast<lua_Integer>(key));
-				}
-#endif // Lua 5.3.x
 				else {
 					push(L, std::forward<Key>(key));
 					push(L, std::forward<Value>(value));

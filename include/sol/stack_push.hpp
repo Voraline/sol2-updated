@@ -105,36 +105,8 @@ namespace sol { namespace stack {
 #if SOL_IS_ON(SOL_SAFE_STACK_CHECK)
 		luaL_checkstack(L, 1, detail::not_enough_stack_space_environment);
 #endif // make sure stack doesn't overflow
-#if SOL_LUA_VERSION_I_ < 502
 		// Use lua_getfenv
 		lua_getfenv(L, target_index);
-#else
-
-		if (lua_iscfunction(L, target_index) != 0) {
-			const char* maybe_upvalue_name = lua_getupvalue(L, target_index, 1);
-			if (maybe_upvalue_name != nullptr) {
-				// it worked, take this one
-				return 1;
-			}
-		}
-		// Nominally, we search for the `"_ENV"` value.
-		// If we don't find it.... uh, well. We've got a problem?
-		for (int upvalue_index = 1;; ++upvalue_index) {
-			const char* maybe_upvalue_name = lua_getupvalue(L, target_index, upvalue_index);
-			if (maybe_upvalue_name == nullptr) {
-				push(L, lua_nil);
-				break;
-			}
-
-			string_view upvalue_name(maybe_upvalue_name);
-			if (upvalue_name == "_ENV") {
-				// Keep this one!
-				break;
-			}
-			// Discard what we received, loop back around
-			lua_pop(L, 1);
-		}
-#endif
 		return 1;
 	}
 
@@ -311,12 +283,6 @@ namespace sol { namespace stack {
 #if SOL_IS_ON(SOL_SAFE_STACK_CHECK)
 				luaL_checkstack(L, 1, detail::not_enough_stack_space_integral);
 #endif // make sure stack doesn't overflow
-#if SOL_LUA_VERSION_I_ >= 503
-				if (stack_detail::integer_value_fits<Tu>(value)) {
-					lua_pushinteger(L, static_cast<lua_Integer>(value));
-					return 1;
-				}
-#endif // Lua 5.3 and above
 #if SOL_IS_ON(SOL_NUMBER_PRECISION_CHECKS)
 				if (static_cast<T>(llround(static_cast<lua_Number>(value))) != value) {
 #if SOL_IS_OFF(SOL_EXCEPTIONS)
@@ -422,12 +388,6 @@ namespace sol { namespace stack {
 			int tableindex = lua_gettop(L);
 			std::size_t index = 1;
 			for (const auto& i : cont) {
-#if SOL_LUA_VERSION_I_ >= 503
-				int p = is_nested ? stack::push(L, as_nested_ref(i)) : stack::push(L, i);
-				for (int pi = 0; pi < p; ++pi) {
-					lua_seti(L, tableindex, static_cast<lua_Integer>(index++));
-				}
-#else
 #if SOL_IS_ON(SOL_SAFE_STACK_CHECK)
 				luaL_checkstack(L, 1, detail::not_enough_stack_space_generic);
 #endif // make sure stack doesn't overflow
@@ -451,7 +411,6 @@ namespace sol { namespace stack {
 					}
 					lua_pop(L, 1 + p);
 				}
-#endif // Lua Version 5.3 and others
 			}
 			// TODO: figure out a better way to do this...?
 			// set_field(L, -1, cont.size());

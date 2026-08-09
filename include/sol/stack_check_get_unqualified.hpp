@@ -67,12 +67,6 @@ namespace sol { namespace stack {
 					}
 				}
 				else if constexpr ((std::is_integral_v<T> || std::is_same_v<T, lua_Integer>)&&!std::is_same_v<T, bool>) {
-#if SOL_LUA_VERSION_I_ >= 503
-					if (lua_isinteger(L, index) != 0) {
-						tracking.use(1);
-						return static_cast<T>(lua_tointeger(L, index));
-					}
-#endif
 					int isnum = 0;
 					const lua_Number value = lua_tonumberx(L, index, &isnum);
 					if (isnum != 0) {

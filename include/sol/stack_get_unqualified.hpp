@@ -130,11 +130,6 @@ namespace sol { namespace stack {
 			}
 			else if constexpr (std::is_integral_v<T> || std::is_same_v<T, lua_Integer>) {
 				tracking.use(1);
-#if SOL_LUA_VERSION_I_ >= 503
-				if (lua_isinteger(L, index) != 0) {
-					return static_cast<T>(lua_tointeger(L, index));
-				}
-#endif
 				return static_cast<T>(llround(lua_tonumber(L, index)));
 			}
 			else if constexpr (std::is_floating_point_v<T> || std::is_same_v<T, lua_Number>) {
@@ -341,60 +336,6 @@ namespace sol { namespace stack {
 			int index = lua_absindex(L, relindex);
 			T cont;
 			std::size_t idx = 0;
-#if SOL_LUA_VERSION_I_ >= 503
-			// This method is HIGHLY performant over regular table iteration
-			// thanks to the Lua API changes in 5.3
-			// Questionable in 5.4
-			for (lua_Integer i = 0;; i += lua_size<V>::value) {
-				if (max_size_check(meta::has_max_size<Tu>(), cont, idx)) {
-					// see above comment
-					goto done;
-				}
-				bool isnil = false;
-				for (int vi = 0; vi < lua_size<V>::value; ++vi) {
-#if SOL_IS_ON(SOL_LUA_NIL_IN_TABLES) && SOL_LUA_VERSION_I_ >= 600
-#if SOL_IS_ON(SOL_SAFE_STACK_CHECK)
-					luaL_checkstack(L, 1, detail::not_enough_stack_space_generic);
-#endif // make sure stack doesn't overflow
-					lua_pushinteger(L, static_cast<lua_Integer>(i + vi));
-					if (lua_keyin(L, index) == 0) {
-						// it's time to stop
-						isnil = true;
-					}
-					else {
-						// we have a key, have to get the value
-						lua_geti(L, index, i + vi);
-					}
-#else
-					type vt = static_cast<type>(lua_geti(L, index, i + vi));
-					isnil = vt == type::none || vt == type::lua_nil;
-#endif
-					if (isnil) {
-						if (i == 0) {
-							break;
-						}
-#if SOL_IS_ON(SOL_LUA_NIL_IN_TABLES) && SOL_LUA_VERSION_I_ >= 600
-						lua_pop(L, vi);
-#else
-						lua_pop(L, (vi + 1));
-#endif
-						// see above comment
-						goto done;
-					}
-				}
-				if (isnil) {
-#if SOL_IS_ON(SOL_LUA_NIL_IN_TABLES) && SOL_LUA_VERSION_I_ >= 600
-#else
-					lua_pop(L, lua_size<V>::value);
-#endif
-					continue;
-				}
-
-				push_back_at_end(meta::has_push_back<Tu>(), t, L, cont, idx);
-				++idx;
-				lua_pop(L, lua_size<V>::value);
-			}
-#else
 			// Zzzz slower but necessary thanks to the lower version API and missing functions qq
 			for (lua_Integer i = 0;; i += lua_size<V>::value, lua_pop(L, lua_size<V>::value)) {
 				if (idx >= cont.max_size()) {
@@ -424,7 +365,6 @@ namespace sol { namespace stack {
 				push_back_at_end(meta::has_push_back<Tu>(), t, L, cont, idx);
 				++idx;
 			}
-#endif
 		done:
 			return cont;
 		}
@@ -491,30 +431,6 @@ namespace sol { namespace stack {
 			C cont;
 			auto at = cont.cbefore_begin();
 			std::size_t idx = 0;
-#if SOL_LUA_VERSION_I_ >= 503
-			// This method is HIGHLY performant over regular table iteration thanks to the Lua API changes in 5.3
-			for (lua_Integer i = 0;; i += lua_size<V>::value, lua_pop(L, lua_size<V>::value)) {
-				if (idx >= cont.max_size()) {
-					goto done;
-				}
-				bool isnil = false;
-				for (int vi = 0; vi < lua_size<V>::value; ++vi) {
-					type t = static_cast<type>(lua_geti(L, index, i + vi));
-					isnil = t == type::lua_nil;
-					if (isnil) {
-						if (i == 0) {
-							break;
-						}
-						lua_pop(L, (vi + 1));
-						goto done;
-					}
-				}
-				if (isnil)
-					continue;
-				at = cont.insert_after(at, stack::get<V>(L, -lua_size<V>::value));
-				++idx;
-			}
-#else
 			// Zzzz slower but necessary thanks to the lower version API and missing functions qq
 			for (lua_Integer i = 0;; i += lua_size<V>::value, lua_pop(L, lua_size<V>::value)) {
 				if (idx >= cont.max_size()) {
@@ -539,7 +455,6 @@ namespace sol { namespace stack {
 				at = cont.insert_after(at, stack::get<V>(L, -lua_size<V>::value));
 				++idx;
 			}
-#endif
 		done:
 			return cont;
 		}

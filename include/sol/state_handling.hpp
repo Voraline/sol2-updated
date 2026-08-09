@@ -37,7 +37,6 @@
 
 namespace sol {
 	inline void register_main_thread(lua_State* L) {
-#if SOL_LUA_VERSION_I_ < 502
 		if (L == nullptr) {
 			lua_pushnil(L);
 			lua_setglobal(L, detail::default_main_thread_name());
@@ -45,9 +44,6 @@ namespace sol {
 		}
 		lua_pushthread(L);
 		lua_setglobal(L, detail::default_main_thread_name());
-#else
-		(void)L;
-#endif
 	}
 
 	inline int default_at_panic(lua_State* L) {
@@ -102,9 +98,7 @@ namespace sol {
 		register_main_thread(L);
 		stack::luajit_exception_handler(L);
 		lua_value::set_lua_state(L);
-#if SOL_IS_ON(SOL_USE_LUAU)
 		lua_setuserdatadtor(L, LUAU_USERDATA_GC_TAG, LuauCompat::garbageCollection::dtor);
-#endif
 	}
 
 	inline std::size_t total_memory_used(lua_State* L) {

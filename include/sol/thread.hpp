@@ -158,11 +158,7 @@ namespace sol {
 			auto lstat = static_cast<thread_status>(lua_status(lthread));
 			if (lstat == thread_status::ok) {
 				lua_Debug ar;
-#if SOL_IS_ON(SOL_USE_LUAU)
-				if (lua_getinfo(lthread, 0, "", &ar) > 0)
-#else
-				if (lua_getstack(lthread, 0, &ar) > 0)
-#endif
+			if (lua_getinfo(lthread, 0, "", &ar) > 0)
 					return thread_status::ok;
 				else if (lua_gettop(lthread) == 0)
 					return thread_status::dead;

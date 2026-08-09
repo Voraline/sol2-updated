@@ -218,7 +218,6 @@ namespace sol {
 	} // namespace stack
 
 	inline lua_State* main_thread(lua_State* L_, lua_State* backup_if_unsupported_ = nullptr) {
-#if SOL_LUA_VERSION_I_ < 502
 		if (L_ == nullptr)
 			return backup_if_unsupported_;
 		lua_getglobal(L_, detail::default_main_thread_name());
@@ -227,14 +226,6 @@ namespace sol {
 			return lua_tothread(L_, -1);
 		}
 		return backup_if_unsupported_;
-#else
-		if (L_ == nullptr)
-			return backup_if_unsupported_;
-		lua_rawgeti(L_, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD);
-		lua_State* Lmain = lua_tothread(L_, -1);
-		lua_pop(L_, 1);
-		return Lmain;
-#endif // Lua 5.2+ has the main thread unqualified_getter
 	}
 
 	namespace detail {

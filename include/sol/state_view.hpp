@@ -46,18 +46,15 @@ namespace sol {
 			bool is53mod = loaded && !(loaded->is<bool>() && !loaded->as<bool>());
 			if (is53mod)
 				return loaded;
-#if SOL_LUA_VERSION_I_ <= 501
 			auto loaded51 = global.traverse_get<optional<object>>("package", "loaded", key);
 			bool is51mod = loaded51 && !(loaded51->is<bool>() && !loaded51->as<bool>());
 			if (is51mod)
 				return loaded51;
-#endif
 			return nullopt;
 		}
 
 		template <typename T>
 		void ensure_package(const std::string& key, T&& sr) {
-#if SOL_LUA_VERSION_I_ <= 501
 			auto pkg = global["package"];
 			if (!pkg.valid()) {
 				pkg = create_table_with("loaded", create_table_with(key, sr));
@@ -71,7 +68,6 @@ namespace sol {
 					ld[key] = sr;
 				}
 			}
-#endif
 			auto loaded = reg["_LOADED"];
 			if (!loaded.valid()) {
 				loaded = create_table_with(key, sr);
@@ -133,17 +129,9 @@ namespace sol {
 						luaL_requiref(L, "base", luaopen_base, 1);
 						lua_pop(L, 1);
 						break;
-#if SOL_IS_OFF(SOL_USE_LUAU)
-					case lib::package:
-						luaL_requiref(L, "package", luaopen_package, 1);
-						lua_pop(L, 1);
-						break;
-#endif
 					case lib::coroutine:
-#if SOL_LUA_VERSION_I_ > 501 || SOL_IS_ON(SOL_USE_LUAU)
 						luaL_requiref(L, "coroutine", luaopen_coroutine, 1);
 						lua_pop(L, 1);
-#endif // Lua 5.2+ and Luau only
 						break;
 					case lib::string:
 						luaL_requiref(L, "string", luaopen_string, 1);
@@ -164,10 +152,6 @@ namespace sol {
 #endif
 						break;
 					case lib::io:
-#if SOL_IS_OFF(SOL_USE_LUAU)
-						luaL_requiref(L, "io", luaopen_io, 1);
-						lua_pop(L, 1);
-#endif
 						break;
 					case lib::os:
 						luaL_requiref(L, "os", luaopen_os, 1);
@@ -178,10 +162,8 @@ namespace sol {
 						lua_pop(L, 1);
 						break;
 					case lib::utf8:
-#if SOL_LUA_VERSION_I_ > 502 || SOL_IS_ON(SOL_USE_LUAU)
 						luaL_requiref(L, "utf8", luaopen_utf8, 1);
 						lua_pop(L, 1);
-#endif // Lua 5.3+ and Luau only
 						break;
 					case lib::ffi:
 						// LuaJIT-only; this project targets Luau, which has no ffi library.
@@ -190,16 +172,12 @@ namespace sol {
 						// LuaJIT-only; this project targets Luau, which has no jit library.
 						break;
 					case lib::buffer:
-#if SOL_IS_ON(SOL_USE_LUAU)
 						luaL_requiref(L, "buffer", luaopen_buffer, 0);
 						lua_pop(L, 1);
-#endif // Luau Only
 						break;
 					case lib::vector:
-#if SOL_IS_ON(SOL_USE_LUAU)
 						luaL_requiref(L, "vector", luaopen_vector, 0);
 						lua_pop(L, 1);
-#endif // Luau Only
 						break;
 					case lib::count:
 					default:
@@ -236,13 +214,7 @@ namespace sol {
 			// yay for version differences...
 			// one day Lua 5.1 will die a peaceful death
 			// and its old bones will find blissful rest
-			auto loaders_proxy = package
-#if SOL_LUA_VERSION_I_ < 502
-			     ["loaders"]
-#else
-			     ["searchers"]
-#endif
-			     ;
+			auto loaders_proxy = package["loaders"];
 			if (!loaders_proxy.valid()) {
 				// nothing to clear
 				return;
@@ -264,13 +236,7 @@ namespace sol {
 			// yay for version differences...
 			// one day Lua 5.1 will die a peaceful death
 			// and its old bones will find blissful rest
-			auto loaders_proxy = package
-#if SOL_LUA_VERSION_I_ < 502
-			     ["loaders"]
-#else
-			     ["searchers"]
-#endif
-			     ;
+			auto loaders_proxy = package["loaders"];
 			bool make_new_table = clear_all_package_loaders || !loaders_proxy.valid();
 			if (make_new_table) {
 				// we need to create the table for loaders
@@ -287,34 +253,6 @@ namespace sol {
 			table loaders = loaders_proxy;
 			loaders.add(std::forward<Fx>(fx));
 		}
-
-#if SOL_IS_OFF(SOL_USE_LUAU)
-		template <typename E>
-		protected_function_result do_reader(lua_Reader reader, void* data, const basic_environment<E>& env,
-		     const std::string& chunkname = detail::default_chunk_name(), load_mode mode = load_mode::any) {
-			detail::typical_chunk_name_t basechunkname = {};
-			const char* chunknametarget = detail::make_chunk_name("lua_Reader", chunkname, basechunkname);
-			load_status x = static_cast<load_status>(lua_load(L, reader, data, chunknametarget, to_string(mode).c_str()));
-			if (x != load_status::ok) {
-				return protected_function_result(L, absolute_index(L, -1), 0, 1, static_cast<call_status>(x));
-			}
-			stack_aligned_protected_function pf(L, -1);
-			set_environment(env, pf);
-			return pf();
-		}
-
-		protected_function_result do_reader(
-		     lua_Reader reader, void* data, const std::string& chunkname = detail::default_chunk_name(), load_mode mode = load_mode::any) {
-			detail::typical_chunk_name_t basechunkname = {};
-			const char* chunknametarget = detail::make_chunk_name("lua_Reader", chunkname, basechunkname);
-			load_status x = static_cast<load_status>(lua_load(L, reader, data, chunknametarget, to_string(mode).c_str()));
-			if (x != load_status::ok) {
-				return protected_function_result(L, absolute_index(L, -1), 0, 1, static_cast<call_status>(x));
-			}
-			stack_aligned_protected_function pf(L, -1);
-			return pf();
-		}
-#endif
 
 		template <typename E>
 		protected_function_result do_string(const string_view& code, const basic_environment<E>& env,
@@ -361,25 +299,6 @@ namespace sol {
 			stack_aligned_protected_function pf(L, -1);
 			return pf();
 		}
-
-#if SOL_IS_OFF(SOL_USE_LUAU)
-		template <typename Fx,
-		     meta::disable_any<meta::is_string_constructible<meta::unqualified_t<Fx>>,
-		          meta::is_specialization_of<meta::unqualified_t<Fx>, basic_environment>> = meta::enabler>
-		protected_function_result safe_script(
-		     lua_Reader reader, void* data, Fx&& on_error, const std::string& chunkname = detail::default_chunk_name(), load_mode mode = load_mode::any) {
-			protected_function_result pfr = do_reader(reader, data, chunkname, mode);
-			if (!pfr.valid()) {
-				return on_error(L, std::move(pfr));
-			}
-			return pfr;
-		}
-
-		protected_function_result safe_script(
-		     lua_Reader reader, void* data, const std::string& chunkname = detail::default_chunk_name(), load_mode mode = load_mode::any) {
-			return safe_script(reader, data, script_default_on_error, chunkname, mode);
-		}
-#endif
 
 		template <typename Fx,
 		     meta::disable_any<meta::is_string_constructible<meta::unqualified_t<Fx>>,
@@ -443,35 +362,6 @@ namespace sol {
 		protected_function_result safe_script_file(const std::string& filename, load_mode mode = load_mode::any) {
 			return safe_script_file(filename, script_default_on_error, mode);
 		}
-
-#if SOL_IS_OFF(SOL_USE_LUAU)
-		template <typename E>
-		unsafe_function_result unsafe_script(lua_Reader reader, void* data, const basic_environment<E>& env,
-		     const std::string& chunkname = detail::default_chunk_name(), load_mode mode = load_mode::any) {
-			detail::typical_chunk_name_t basechunkname = {};
-			const char* chunknametarget = detail::make_chunk_name("lua_Reader", chunkname, basechunkname);
-			int index = lua_gettop(L);
-			if (lua_load(L, reader, data, chunknametarget, to_string(mode).c_str())) {
-				lua_error(L);
-			}
-			set_environment(env, stack_reference(L, raw_index(index + 1)));
-			if (lua_pcall(L, 0, LUA_MULTRET, 0)) {
-				lua_error(L);
-			}
-			int postindex = lua_gettop(L);
-			int returns = postindex - index;
-			return unsafe_function_result(L, (std::max)(postindex - (returns - 1), 1), returns);
-		}
-
-		unsafe_function_result unsafe_script(
-		     lua_Reader reader, void* data, const std::string& chunkname = detail::default_chunk_name(), load_mode mode = load_mode::any) {
-			int index = lua_gettop(L);
-			stack::script(L, reader, data, chunkname, mode);
-			int postindex = lua_gettop(L);
-			int returns = postindex - index;
-			return unsafe_function_result(L, (std::max)(postindex - (returns - 1), 1), returns);
-		}
-#endif
 
 		template <typename E>
 		unsafe_function_result unsafe_script(const string_view& code, const basic_environment<E>& env,
@@ -559,12 +449,6 @@ namespace sol {
 		}
 
 #if SOL_IS_ON(SOL_SAFE_FUNCTION_OBJECTS)
-#if SOL_IS_OFF(SOL_USE_LUAU)
-		protected_function_result script(
-		     lua_Reader reader, void* data, const std::string& chunkname = detail::default_chunk_name(), load_mode mode = load_mode::any) {
-			return safe_script(reader, data, chunkname, mode);
-		}
-#endif
 		protected_function_result script(
 		     const string_view& code, const std::string& chunkname = detail::default_chunk_name(), load_mode mode = load_mode::any) {
 			return safe_script(code, chunkname, mode);
@@ -602,14 +486,6 @@ namespace sol {
 			load_status x = static_cast<load_status>(luaL_loadfilex(L, filename.c_str(), to_string(mode).c_str()));
 			return load_result(L, absolute_index(L, -1), 1, 1, x);
 		}
-#if SOL_IS_OFF(SOL_USE_LUAU)
-		load_result load(lua_Reader reader, void* data, const std::string& chunkname = detail::default_chunk_name(), load_mode mode = load_mode::any) {
-			detail::typical_chunk_name_t basechunkname = {};
-			const char* chunknametarget = detail::make_chunk_name("lua_Reader", chunkname, basechunkname);
-			load_status x = static_cast<load_status>(lua_load(L, reader, data, chunknametarget, to_string(mode).c_str()));
-			return load_result(L, absolute_index(L, -1), 1, 1, x);
-		}
-#endif
 		iterator begin() const {
 			return global.begin();
 		}
@@ -655,21 +531,11 @@ namespace sol {
 		}
 
 		bool supports_gc_mode(gc_mode mode) const noexcept {
-#if SOL_LUA_VERSION_I_ >= 504
-			// supports all modes
-			(void)mode;
-			return true;
-#endif
 			return mode == gc_mode::default_value;
 		}
 
 		bool is_gc_on() const {
-#if SOL_LUA_VERSION_I_ >= 502 || SOL_IS_ON(SOL_USE_LUAU)
 			return lua_gc(lua_state(), LUA_GCISRUNNING, 0) == 1;
-#else
-			// You cannot turn it off in Lua 5.1
-			return true;
-#endif
 		}
 
 		void collect_garbage() {
@@ -684,13 +550,7 @@ namespace sol {
 			// THOUGHT: std::chrono-alikes to map "kilobyte size" here...?
 			// Make it harder to give MB or KB to a B parameter...?
 			// Probably overkill for now.
-#if SOL_LUA_VERSION_I_ >= 504
-			// The manual implies that this function is almost always successful...
-			// is it?? It could depend on the GC mode...
-			return lua_gc(lua_state(), LUA_GCSTEP, step_size_kilobytes) != 0;
-#else
 			return lua_gc(lua_state(), LUA_GCSTEP, step_size_kilobytes) == 1;
-#endif
 		}
 
 		void restart_gc() {
@@ -709,42 +569,16 @@ namespace sol {
 			// THOUGHT: std::chrono-alikes to map "byte size" here...?
 			// Make it harder to give MB or KB to a B parameter...?
 			// Probably overkill for now.
-#if SOL_LUA_VERSION_I_ >= 504
-			int old_mode = lua_gc(lua_state(), LUA_GCINC, pause, step_multiplier, step_byte_size);
-			if (old_mode == LUA_GCGEN) {
-				return gc_mode::generational;
-			}
-			else if (old_mode == LUA_GCINC) {
-				return gc_mode::incremental;
-			}
-#else
-#if SOL_IS_OFF(SOL_USE_LUAU)
-			lua_gc(lua_state(), LUA_GCSETPAUSE, pause);
-#else
 			(void)pause;
-#endif
 			lua_gc(lua_state(), LUA_GCSETSTEPMUL, step_multiplier);
 			(void)step_byte_size; // means nothing in older versions
-#endif
 			return gc_mode::default_value;
 		}
 
 		// Returns the old GC mode. Check support using the supports_gc_mode function.
 		gc_mode change_gc_mode_generational(int minor_multiplier, int major_multiplier) {
-#if SOL_LUA_VERSION_I_ >= 504
-			// "What does this shit mean?"
-			// http://www.lua.org/manual/5.4/manual.html#2.5.2
-			int old_mode = lua_gc(lua_state(), LUA_GCGEN, minor_multiplier, major_multiplier);
-			if (old_mode == LUA_GCGEN) {
-				return gc_mode::generational;
-			}
-			else if (old_mode == LUA_GCINC) {
-				return gc_mode::incremental;
-			}
-#else
 			(void)minor_multiplier;
 			(void)major_multiplier;
-#endif
 			return gc_mode::default_value;
 		}
 

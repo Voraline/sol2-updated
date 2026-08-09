@@ -117,62 +117,10 @@ namespace sol {
 			lua_State* L = target.lua_state();
 			auto pp = stack::push_pop(target);
 			int target_index = pp.index_of(target);
-#if SOL_LUA_VERSION_I_ < 502
 			// Use lua_setfenv
 			this->push();
 			int success_result = lua_setfenv(L, target_index);
 			return success_result != 0;
-#else
-			// If this is a C function, the environment is always placed in
-			// the first value, as is expected of sol2 (all upvalues have an empty name, "")
-			if (lua_iscfunction(L, target_index) != 0) {
-				const char* maybe_upvalue_name = lua_getupvalue(L, target_index, 1);
-				if (maybe_upvalue_name == nullptr) {
-					return false;
-				}
-				string_view upvalue_name(maybe_upvalue_name);
-				if (upvalue_name == "") {
-					this->push();
-					const char* success = lua_setupvalue(L, target_index, 1);
-					if (success == nullptr) {
-						// left things alone on the stack, pop them off
-						lua_pop(L, 2);
-						return false;
-					}
-					lua_pop(L, 1);
-					return true;
-				}
-				lua_pop(L, 1);
-				return false;
-			}
-			else {
-				// Must search for the right upvalue target on index
-				for (int upvalue_index = 1;; ++upvalue_index) {
-					const char* maybe_upvalue_name = lua_getupvalue(L, target_index, upvalue_index);
-					if (maybe_upvalue_name == nullptr) {
-						break;
-					}
-					string_view upvalue_name(maybe_upvalue_name);
-					if (upvalue_name == "_ENV") {
-						lua_pop(L, 1);
-						this->push();
-						const char* success = lua_setupvalue(L, target_index, upvalue_index);
-						if (success == nullptr) {
-							// left things alone on the stack, pop them off
-							lua_pop(L, 1);
-							break;
-						}
-						// whether or not we succeeded, we found _ENV
-						// so we need to break
-						return true;
-					}
-					lua_pop(L, 1);
-				}
-				// if we get here,
-				// we did not find an _ENV here...
-				return false;
-			}
-#endif
 		}
 	};
 
@@ -238,25 +186,12 @@ namespace sol {
 				// Level 0 means current function (this C function, which may or may not be useful for us?)
 				// Level 1 means next call frame up the stack. (Can be nothing if function called directly from C++ with lua_p/call)
 				int pre_stack_size = lua_gettop(L);
-#if SOL_IS_OFF(SOL_USE_LUAU)
-				if (lua_getstack(L, 1, &info) != 1) {
-					if (lua_getstack(L, 0, &info) != 1) {
-						lua_settop(L, pre_stack_size);
-						return this_environment();
-					}
-				}
-				if (lua_getinfo(L, "f", &info) == 0) {
-					lua_settop(L, pre_stack_size);
-					return this_environment();
-				}
-#else
-				if (lua_getinfo(L, 1, "f", &info) == 0) {
+			if (lua_getinfo(L, 1, "f", &info) == 0) {
 					if (lua_getinfo(L, 0, "f", &info) == 0) {
 						lua_settop(L, pre_stack_size);
 						return this_environment();
 					}
 				}
-#endif
 
 				stack_reference f(L, -1);
 				environment env(env_key, f);

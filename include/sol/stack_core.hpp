@@ -71,13 +71,7 @@ namespace sol {
 		using unique_tag = detail::inheritance_unique_cast_function;
 
 		inline void* alloc_newuserdata(lua_State* L, std::size_t bytesize) {
-#if SOL_LUA_VERSION_I_ >= 504
-			return lua_newuserdatauv(L, bytesize, 1);
-#elif SOL_IS_ON(SOL_USE_LUAU)
 			return lua_newuserdatatagged(L, bytesize, LUAU_USERDATA_GC_TAG);
-#else
-			return lua_newuserdata(L, bytesize);
-#endif
 		}
 
 		constexpr std::uintptr_t align(std::size_t alignment, std::uintptr_t ptr, std::size_t& space) {
@@ -341,9 +335,6 @@ namespace sol {
 				else {
 					luaL_error(L, "aligned allocation of userdata block (data section) for '%s' failed", detail::demangle<T>().c_str());
 				}
-#if (SOL_IS_OFF(SOL_USE_LUAU))
-				return nullptr;
-#endif
 			}
 
 			T** pointerpointer = reinterpret_cast<T**>(pointer_adjusted);
@@ -397,9 +388,6 @@ namespace sol {
 				else {
 					luaL_error(L, "aligned allocation of userdata block (data section) for '%s' failed", detail::demangle<T>().c_str());
 				}
-#if SOL_IS_OFF(SOL_USE_LUAU)
-				return nullptr;
-#endif
 			}
 
 			pref = static_cast<T**>(pointer_adjusted);

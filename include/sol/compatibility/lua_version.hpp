@@ -28,65 +28,18 @@
 
 // clang-format off
 
-#if SOL_IS_ON(SOL_USE_LUAU) 
-	#include <lua.h>
-	#include <lualib.h>
-#elif SOL_IS_ON(SOL_USING_CXX_LUA)
-	#if __has_include(<lua/lua.h>)
-		#include <lua/lua.h>
-		#include <lua/lauxlib.h>
-		#include <lua/lualib.h>
-	#else
-		#include <lua.h>
-		#include <lauxlib.h>
-		#include <lualib.h>
-	#endif
-#elif SOL_IS_ON(SOL_USE_LUA_HPP)
-	#if __has_include(<lua/lua.hpp>)
-		#include <lua/lua.hpp>
-	#else
-		#include <lua.hpp>
-	#endif
-#else
-	extern "C" {
-		#if __has_include(<lua/lua.h>)
-			#include <lua/lua.h>
-			#include <lua/lauxlib.h>
-			#include <lua/lualib.h>
-		#else
-			#include <lua.h>
-			#include <lauxlib.h>
-			#include <lualib.h>
-		#endif
-	}
-#endif // C++ Mangling for Lua vs. Not
+#include <lua.h>
+#include <lualib.h>
 
-#if SOL_IS_ON(SOL_USE_LUAU)
-	// Bla bla bla compiler warning about unreachable code, so we have to use macros
-	#define return_luaL_error(L, fmt, ...) luaL_errorL(L, fmt, ##__VA_ARGS__);
-	#define return_lua_error(L) lua_error(L);
-#else
-	#define return_luaL_error(L, fmt, ...) return luaL_errorL(L, fmt, ##__VA_ARGS__)
-	#define return_lua_error(L) return lua_error(L)
-#endif
+// Bla bla bla compiler warning about unreachable code, so we have to use macros
+#define return_luaL_error(L, fmt, ...) luaL_errorL(L, fmt, ##__VA_ARGS__);
+#define return_lua_error(L) lua_error(L);
 
 // This project targets Luau only; LuaJIT is never used.
 #define SOL_USE_LUAJIT_I_ SOL_OFF
 
 #if !defined(SOL_LUA_VERSION)
-	#if SOL_IS_ON(SOL_USE_LUAU)
-		#define SOL_LUA_VERSION 501
-	#elif defined(LUA_VERSION_NUM) && LUA_VERSION_NUM >= 502
-		#define SOL_LUA_VERSION LUA_VERSION_NUM
-	#elif defined(LUA_VERSION_NUM) && LUA_VERSION_NUM == 501
-		#define SOL_LUA_VERSION LUA_VERSION_NUM
-	#elif !defined(LUA_VERSION_NUM) || !(LUA_VERSION_NUM)
-		// Definitely 5.0
-		#define SOL_LUA_VERSION 500
-	#else
-		// ??? Not sure, assume latest?
-		#define SOL_LUA_VERSION 504
-	#endif // Lua Version 503, 502, 501 || luajit, 500
+	#define SOL_LUA_VERSION 501
 #endif // SOL_LUA_VERSION
 
 #if defined(SOL_LUA_VERSION)
@@ -124,14 +77,8 @@
 		#define SOL_EXCEPTIONS_CATCH_ALL_I_ SOL_OFF
 	#endif
 #else
-	#if SOL_IS_ON(SOL_USING_CXX_LUA)
-		// C++ builds of Lua will throw an exception to implement its `yield` behavior;
-		// it is irresponsible to "catch all" on this setting.
-		#define SOL_EXCEPTIONS_CATCH_ALL_I_ SOL_DEFAULT_OFF
-	#else
-		// Otherwise, by default, everyhting should be caught.
-		#define SOL_EXCEPTIONS_CATCH_ALL_I_ SOL_DEFAULT_ON
-	#endif
+	// By default, everything should be caught.
+	#define SOL_EXCEPTIONS_CATCH_ALL_I_ SOL_DEFAULT_ON
 #endif
 
 // This project targets Luau only; the LuaJIT exception trampoline

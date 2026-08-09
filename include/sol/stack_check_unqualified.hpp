@@ -127,38 +127,6 @@ namespace sol { namespace stack {
 			}
 			else if constexpr (std::is_integral_v<T> || std::is_same_v<T, lua_Integer>) {
 				tracking.use(1);
-#if SOL_LUA_VERSION_I_ >= 503
-				// Lua 5.3 and greater checks for numeric precision
-#if SOL_IS_ON(SOL_STRINGS_ARE_NUMBERS)
-				// imprecise, sloppy conversions
-				int isnum = 0;
-				lua_tointegerx(L_, index, &isnum);
-				const bool success = isnum != 0;
-				if (!success) {
-					// expected type, actual type
-					handler(L_, index, type::number, type_of(L_, index), detail::not_a_number_or_number_string_integral);
-				}
-#elif SOL_IS_ON(SOL_NUMBER_PRECISION_CHECKS)
-				// this check is precise, do not convert
-				if (lua_isinteger(L_, index) == 1) {
-					return true;
-				}
-				const bool success = false;
-				if (!success) {
-					// expected type, actual type
-					handler(L_, index, type::number, type_of(L_, index), detail::not_a_number_integral);
-				}
-#else
-				// Numerics are neither safe nor string-convertible
-				type t = type_of(L_, index);
-				const bool success = t == type::number;
-#endif
-				if (!success) {
-					// expected type, actual type
-					handler(L_, index, type::number, type_of(L_, index), detail::not_a_number);
-				}
-				return success;
-#else
 				// Lua 5.2 and below checks
 #if SOL_IS_OFF(SOL_STRINGS_ARE_NUMBERS)
 				// must pre-check, because it will convert
@@ -188,7 +156,6 @@ namespace sol { namespace stack {
 #endif
 				}
 				return success;
-#endif
 			}
 			else if constexpr (std::is_floating_point_v<T> || std::is_same_v<T, lua_Number>) {
 				tracking.use(1);
