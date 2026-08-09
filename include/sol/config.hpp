@@ -63,4 +63,52 @@ the build system, or the command line options of your compiler.
 #define SOL_SAFE_STACK_CHECK 0
 #endif
 
+#ifndef SOL_SAFE_GETTER
+#define SOL_SAFE_GETTER 0
+#endif
+
+#ifndef SOL_SAFE_USERTYPE
+#define SOL_SAFE_USERTYPE 0
+#endif
+
+#ifndef SOL_SAFE_REFERENCES
+#define SOL_SAFE_REFERENCES 0
+#endif
+
+#ifndef SOL_SAFE_FUNCTION_CALLS
+#define SOL_SAFE_FUNCTION_CALLS 0
+#endif
+
+#ifndef SOL_SAFE_PROXIES
+#define SOL_SAFE_PROXIES 0
+#endif
+
+#ifndef SOL_SAFE_NUMERICS
+#define SOL_SAFE_NUMERICS 0
+#endif
+
+#ifndef SOL_NO_CHECK_NUMBER_PRECISION
+#define SOL_NO_CHECK_NUMBER_PRECISION 1
+#endif
+
+#ifndef SOL_ALL_INTEGER_VALUES_FIT
+#define SOL_ALL_INTEGER_VALUES_FIT 1
+#endif
+
+#ifndef SOL_NO_COMPAT
+#define SOL_NO_COMPAT 1
+#endif
+
+#ifndef SOL_USERTYPE_TYPE_BINDING_INFO
+#define SOL_USERTYPE_TYPE_BINDING_INFO 0
+#endif
+
+#ifndef SOL_USE_UNSAFE_BASE_LOOKUP
+#define SOL_USE_UNSAFE_BASE_LOOKUP 1
+#endif
+
+#ifndef SOL_NOEXCEPT_FUNCTION_TYPE
+#define SOL_NOEXCEPT_FUNCTION_TYPE 1
+#endif
+
 #endif // SOL_CONFIG_HPP
