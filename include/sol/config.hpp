@@ -96,7 +96,7 @@ the build system, or the command line options of your compiler.
 #endif
 
 #ifndef SOL_NO_COMPAT
-#define SOL_NO_COMPAT 1
+#define SOL_NO_COMPAT 0
 #endif
 
 #ifndef SOL_USERTYPE_TYPE_BINDING_INFO
