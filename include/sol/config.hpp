@@ -26,7 +26,7 @@
 
 /* Base, empty configuration file!
 
-     To override, place a file in your include paths of the form:
+	 To override, place a file in your include paths of the form:
 
 
 . (your include path here)
@@ -34,17 +34,33 @@
   | config.hpp (your config.hpp file)
 
 
-     So that when sol2 includes the file
+	 So that when sol2 includes the file
 
 
 #include <sol/config.hpp>
 
 
-     it gives you the configuration values you desire. Configuration values can be
+	 it gives you the configuration values you desire. Configuration values can be
 seen in the safety.rst of the doc/src, or at
 https://sol2.readthedocs.io/en/latest/safety.html ! You can also pass them through
 the build system, or the command line options of your compiler.
 
 */
+
+#ifndef SOL_USE_LUAU
+#define SOL_USE_LUAU 1
+#endif
+
+#ifndef LUA_VERSION_NUM
+#define LUA_VERSION_NUM 501
+#endif
+
+#ifndef SOL_LUA_BIT32_LIB
+#define SOL_LUA_BIT32_LIB 0
+#endif
+
+#ifndef SOL_SAFE_STACK_CHECK
+#define SOL_SAFE_STACK_CHECK 0
+#endif
 
 #endif // SOL_CONFIG_HPP

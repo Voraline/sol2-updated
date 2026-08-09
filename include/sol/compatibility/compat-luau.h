@@ -791,7 +791,7 @@ namespace LuauCompat {
 		lua_CompileOptions opts = {};
 		opts.optimizationLevel = optimizationLevel;
 		opts.debugLevel = debugLevel;
-		opts.typeInfoLevel = 2;
+		opts.typeInfoLevel = 1;
 		opts.coverageLevel = 0;
 
 		size_t outSize = 0;
