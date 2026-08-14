@@ -1,13 +1,13 @@
 #ifndef KEPLER_PROJECT_COMPATLUAU_H_
 #define KEPLER_PROJECT_COMPATLUAU_H_
 #if SOL_IS_ON(SOL_USE_LUAU) 
-#include <sol/luau/VM/include/lua.h>
-#include <sol/luau/VM/include/lualib.h>
-#include <sol/luau/VM/src/lobject.h>
-#include <sol/luau/VM/src/lstate.h>
-#include <sol/luau/Compiler/include/luacode.h>
-#include <sol/luau/VM/src/lbytecode.h>
-#include <sol/luau/VM/src/lmem.h>
+#include <lua.h>
+#include <lualib.h>
+#include <lobject.h>
+#include <lstate.h>
+#include <luacode.h>
+#include <lbytecode.h>
+#include <lmem.h>
 
 #include <fstream>
 #include <algorithm>
